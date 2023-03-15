@@ -1,0 +1,39 @@
+{
+    "name"              : "crossemu",    "targetName"  : "crossemu-sdk",
+    "description"       : "Cross-Emulator source development kit exposing general API.",
+    "copyright"         : "Copyright © 2020-2023, The Lost Mods",
+    "license"           : "Boost License 1.0",
+    "authors"           : [ "SpiceyWolf", "Wedarobi", "MasterG" ],
+    "homepage"          : "https://thelostmods.forumotion.com/h1-crossemu",
+    "versions"          : [ "DL_ERROR", "DL_WARNING", "DL_NOTIFICATION" ],
+
+    "dflags"            : [ "-i" ],
+    "targetType"        : "dynamicLibrary",
+
+    "dependencies": {
+        "godot-dlang" : "~>0.2.0"
+    },
+
+    "configurations": [
+        {
+            "name"       : "linux",
+            "platforms"  : [ "linux" ],
+            "targetPath" : "binaries/crossemu-sdk/linux"
+        },
+        {
+            "name"       : "macos",
+            "platforms"  : [ "osx" ],
+            "targetPath" : "binaries/crossemu-sdk/macos"
+        },
+        {
+            "name"       : "win32",
+            "platforms"  : [ "windows" ],
+            "targetPath" : "binaries/crossemu-sdk/win32/"
+        },
+        {
+            "name"       : "win64",
+            "platforms"  : [ "windows" ],
+            "targetPath" : "binaries/crossemu-sdk/win64/"
+        }
+    ]
+}

@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>CrossEmu-Sdk</PackageId> <AssemblyName>crossemu-sdk-dotnet</AssemblyName>
+    <Title>CrossEmu-Sdk</Title> <Product>CrossEmu-Sdk</Product> <RootNamespace>CrossEmu.Sdk</RootNamespace>
+    <Description>Cross-Emulator source development kit exposing general API.</Description>
+    <Copyright>Copyright © 2020-2023, The Lost Mods</Copyright>
+    <Company>The Lost Mods</Company>
+    <Authors>SpiceyWolf, Wedarobi, MasterG</Authors>
+    <PackageProjectUrl>https://thelostmods.forumotion.com/h1-crossemu</PackageProjectUrl>
+
+    <TargetFramework>net7.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SelfContained>true</SelfContained>
+    <Platforms>AnyCPU</Platforms>
+    <Nullable>enable</Nullable>
+		<DebugType>embedded</DebugType>
+    <ExcludeAssets>runtime</ExcludeAssets>
+
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ExportType Condition="'$(Configuration)'=='Debug' and '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'=='true'">linux</ExportType>
+    <ExportType Condition="'$(Configuration)'=='Debug' and '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))'=='true'">macos</ExportType>
+    <ExportType Condition="'$(Configuration)'=='Debug' and '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))'=='true'">win</ExportType>
+		<ExportType Condition="'$(Configuration)'=='Debug' and '$(PROCESSOR_ARCHITECTURE)'!='AMD64' and '$(ExportType)'=='win'">win32</ExportType>
+		<ExportType Condition="'$(Configuration)'=='Debug' and '$(PROCESSOR_ARCHITECTURE)'=='AMD64' and '$(ExportType)'=='win'">win64</ExportType>
+    
+    <ExportType Condition="'$(Configuration)'=='Release' and '$(RuntimeIdentifier)'=='linux-x64'">linux</ExportType>
+    <ExportType Condition="'$(Configuration)'=='Release' and '$(RuntimeIdentifier)'=='osx-x64'">macos</ExportType>
+    <ExportType Condition="'$(Configuration)'=='Release' and '$(RuntimeIdentifier)'=='win-x86'">win32</ExportType>
+    <ExportType Condition="'$(Configuration)'=='Release' and '$(RuntimeIdentifier)'=='win-x64'">win64</ExportType>
+    
+		<DefineConstants Condition="'$(ExportType)'=='linux'">$(DefineConstants);LINUX;POSIX;X64</DefineConstants>
+		<DefineConstants Condition="'$(ExportType)'=='macos'">$(DefineConstants);MACOS;POSIX;X64</DefineConstants>
+		<DefineConstants Condition="'$(ExportType)'=='win32'">$(DefineConstants);WINDOWS;WIN32;X86</DefineConstants>
+		<DefineConstants Condition="'$(ExportType)'=='win64'">$(DefineConstants);WINDOWS;WIN64;X64</DefineConstants>
+
+    <OutputPath Condition="'$(ExportType)'=='linux'">../../binaries/crossemu-sdk/$(ExportType)/</OutputPath>
+    <OutputPath Condition="'$(ExportType)'=='macos'">../../binaries/crossemu-sdk/$(ExportType)/</OutputPath>
+    <OutputPath Condition="'$(ExportType)'=='win32'">../../binaries/crossemu-sdk/$(ExportType)/</OutputPath>
+    <OutputPath Condition="'$(ExportType)'=='win64'">../../binaries/crossemu-sdk/$(ExportType)/</OutputPath>
+	</PropertyGroup>
+
+</Project>

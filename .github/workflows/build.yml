@@ -1,0 +1,206 @@
+name: SDK Builder
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { os: ubuntu-latest, bin: linux.tar.gz },
+          { os: macos-latest,  bin: macos.zip }
+        ]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: dlang-community/setup-dlang@v1
+      
+      - uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '7.0.x'
+          include-prerelease: false
+    
+      - name: Initialize repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Build binaries
+        run: |
+          # pull godot api and generate bindings
+          dub upgrade
+          dub run godot-dlang:generator -- -j extension_api.json -o
+          
+          if ${{runner.os == 'linux'}}; then
+            # build native dlang crossemu-sdk
+            dub build -c linux -b release
+          
+            # build dotnet binding crossemu-sdk
+            cd bindings/dotnet
+            dotnet build -c Release -r linux-x64
+          else
+            # build native dlang crossemu-sdk
+            dub build -c macos -b release
+            
+            # build dotnet binding crossemu-sdk
+            cd bindings/dotnet
+            dotnet build -c Release -r osx-x64
+          fi
+
+      - name: Generate package
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: 'zip'
+          filename: '${{runner.os}}_${{github.event.release.tag_name}}.zip'
+          path: './binaries/'
+
+      - name: Caching package
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{runner.os}}_${{github.event.release.tag_name}}.zip
+          path: ${{runner.os}}_${{github.event.release.tag_name}}.zip
+
+  build-windows:
+    strategy:
+      fail-fast: false
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - uses: dlang-community/setup-dlang@v1
+      
+      - uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '7.0.x'
+          include-prerelease: false
+    
+      - name: Initialize repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Build binaries
+        run: |
+          # pull godot api and generate bindings
+          dub upgrade
+          dub run godot-dlang:generator -- -j extension_api.json -o
+          
+          # build native dlang crossemu-sdk
+          ## dub build -c win32 -b release -a x86
+          dub build -c win64 -b release -a x86_64
+          
+          # build dotnet binding crossemu-sdk
+          cd "bindings\dotnet"
+          ## dotnet build -c Release -r win-x86
+          dotnet build -c Release -r win-x64
+
+      - name: Generate package
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: 'zip'
+          filename: '${{runner.os}}_${{github.event.release.tag_name}}.zip'
+          path: './binaries/'
+
+      - name: Caching package
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{runner.os}}_${{github.event.release.tag_name}}.zip
+          path: ${{runner.os}}_${{github.event.release.tag_name}}.zip
+
+  upload-binaries:
+    runs-on: ubuntu-latest
+    needs: [build-unix, build-windows]
+
+    steps:
+      - name: Initialize repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Pulling linux package
+        uses: actions/download-artifact@v3
+        with:
+          name: Linux_${{github.event.release.tag_name}}.zip
+      
+      - name: Remove linux package cache
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: Linux_${{github.event.release.tag_name}}.zip
+
+      - name: Pulling macos package
+        uses: actions/download-artifact@v3
+        with:
+          name: macOS_${{github.event.release.tag_name}}.zip
+
+      - name: Remove macos package cache
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: macOS_${{github.event.release.tag_name}}.zip
+
+      - name: Pulling windows package
+        uses: actions/download-artifact@v3
+        with:
+          name: Windows_${{github.event.release.tag_name}}.zip
+
+      - name: Remove windows package cache
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: Windows_${{github.event.release.tag_name}}.zip
+      
+      - name: Unpack/Merge packages
+        run: |
+          unzip Linux_${{github.event.release.tag_name}}.zip
+          unzip macOS_${{github.event.release.tag_name}}.zip
+          unzip Windows_${{github.event.release.tag_name}}.zip
+
+      - name: Merge headers
+        run: |
+          # copy header files
+          mkdir -p "include/d/crossemu/"
+          cp -a "source/crossemu/." "include/d/crossemu/"
+          rm -r "include/d/crossemu/sdk/gd/"
+          mkdir -p "binaries/crossemu-sdk/include/"
+          cp -a "include/." "binaries/crossemu-sdk/include/"
+
+      - name: Repack packages
+        run: |
+          cd "binaries"
+          tar -czf "crossemu-sdk.tar.gz" "crossemu-sdk"
+          zip -r "crossemu-sdk.zip" "crossemu-sdk"
+
+      - name: Get release
+        id: get_release
+        uses: bruceadams/get-release@v1.3.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Upload Tar Ball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ./binaries/crossemu-sdk.tar.gz
+          asset_name: crossemu-sdk.tar.gz
+          asset_content_type: tar-ball
+
+      - name: Upload Zip File
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ./binaries/crossemu-sdk.zip
+          asset_name: crossemu-sdk.zip
+          asset_content_type: application/zip

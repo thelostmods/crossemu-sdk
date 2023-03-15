@@ -1,0 +1,16 @@
+**/.idea/
+**/.vscode/
+**/.vs/
+**/.dub/
+**/obj/
+
+**/binaries/
+
+**/docs.json
+**/__dummy.html
+**/dub.selections.sdl
+**/dub.selections.json
+
+*.o
+*.os
+*.obj
